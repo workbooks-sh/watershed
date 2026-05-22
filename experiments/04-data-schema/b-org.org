@@ -1,0 +1,56 @@
+#+TITLE: Workbook Schema
+
+* TABLE findings :table:
+  :PROPERTIES:
+  :ID: table-findings
+  :TENANT: workspace
+  :INDEXES: topic, created_at
+  :END:
+
+** FIELD id
+   :PROPERTIES: :TYPE: uuid :PK: t :END:
+** FIELD topic
+   :PROPERTIES: :TYPE: string :END:
+** FIELD content
+   :PROPERTIES: :TYPE: text :END:
+** FIELD source
+   :PROPERTIES: :TYPE: string :END:
+** FIELD score
+   :PROPERTIES: :TYPE: number :NULLABLE: t :END:
+** FIELD created_at
+   :PROPERTIES: :TYPE: timestamp :END:
+** FIELD created_by
+   :PROPERTIES: :TYPE: user_id :END:
+
+* TABLE evaluations :table:
+  :PROPERTIES:
+  :ID: table-evaluations
+  :TENANT: workspace
+  :INDEXES: finding_id
+  :END:
+
+** FIELD id
+   :PROPERTIES: :TYPE: uuid :PK: t :END:
+** FIELD finding_id
+   :PROPERTIES: :TYPE: uuid :BELONGS_TO: findings :END:
+** FIELD score
+   :PROPERTIES: :TYPE: number :END:
+** FIELD rationale
+   :PROPERTIES: :TYPE: text :END:
+** FIELD reviewer
+   :PROPERTIES: :TYPE: user_id :END:
+
+* TABLE reports :table:
+  :PROPERTIES:
+  :ID: table-reports
+  :TENANT: workspace
+  :END:
+
+** FIELD id
+   :PROPERTIES: :TYPE: uuid :PK: t :END:
+** FIELD title
+   :PROPERTIES: :TYPE: string :END:
+** FIELD summary
+   :PROPERTIES: :TYPE: text :END:
+** FIELD finding_ids
+   :PROPERTIES: :TYPE: uuid[] :END:

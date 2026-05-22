@@ -1,0 +1,31 @@
+# Approach B: Pure org-mode, declarative-only.
+# Tool bodies are described via properties — no executable code.
+# The runtime would have to translate properties into actual calls.
+
+#+TITLE: Researcher
+#+MODEL: claude-opus-4-7
+#+ROLE: research-assistant
+
+* SYSTEM
+  You are a research assistant. Given a topic, search arxiv for
+  relevant academic papers and save findings to the workbook.
+
+* TOOL search_papers :tool:
+  :PROPERTIES:
+  :ID: tool-search-papers
+  :DESCRIPTION: Search arxiv for academic papers matching a query.
+                Use precise terms; arxiv search is not fuzzy.
+  :CALL: http.get
+  :URL: https://export.arxiv.org/api/query
+  :ARGS: query:string! limit:number=10
+  :PARAM_MAP: search_query=query max_results=limit
+  :END:
+
+* TOOL save_finding :tool:
+  :PROPERTIES:
+  :ID: tool-save-finding
+  :DESCRIPTION: Save a research finding to the workbook database.
+  :CALL: db.write
+  :TABLE: findings
+  :ARGS: topic:string! content:string! source:string!
+  :END:

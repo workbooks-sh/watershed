@@ -1,0 +1,36 @@
+# Approach C: Org-mode structure with Lua source blocks for implementation.
+# The org file defines structure, metadata, and prose.
+# Source blocks contain the executable Lua code.
+
+#+TITLE: Researcher
+#+MODEL: claude-opus-4-7
+
+* SYSTEM
+  You are a research assistant. Given a topic, search arxiv for
+  relevant academic papers and save findings to the workbook.
+
+* TOOL search_papers :tool:
+  :PROPERTIES:
+  :ID: tool-search-papers
+  :DESCRIPTION: Search arxiv for academic papers matching a query.
+                Use precise terms; arxiv search is not fuzzy.
+  :ARGS: query:string! limit:number=10
+  :END:
+
+  #+begin_src lua
+  return http.get("https://export.arxiv.org/api/query", {
+    search_query = args.query,
+    max_results = args.limit or 10,
+  })
+  #+end_src
+
+* TOOL save_finding :tool:
+  :PROPERTIES:
+  :ID: tool-save-finding
+  :DESCRIPTION: Save a research finding to the workbook database.
+  :ARGS: topic:string! content:string! source:string!
+  :END:
+
+  #+begin_src lua
+  return db.write("findings", args)
+  #+end_src

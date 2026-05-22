@@ -1,0 +1,69 @@
+# Approach B: One big org file with all three agents inline as stages.
+# Each stage is a sub-agent definition with its own tools and prompt.
+# DAG via :DEPENDS_ON:, state via TODO keywords.
+
+#+TITLE: Research Pipeline
+#+TODO: TODO DOING | DONE ABANDONED FAILED
+
+* SYSTEM
+  Coordinate a research pipeline: find papers, evaluate them, summarize.
+  Each stage runs as a focused sub-task with its own system prompt.
+
+* TODO Find papers :stage:researcher:
+  :PROPERTIES:
+  :ID: stage-find
+  :SYSTEM: You are a research assistant. Find papers about the given topic.
+  :OUTPUT: findings
+  :END:
+
+** TOOL search_papers :tool:
+   :PROPERTIES:
+   :DESCRIPTION: Search arxiv for academic papers matching a query.
+   :END:
+   #+begin_src lua
+   return http.get("https://export.arxiv.org/api/query", {
+     search_query = args.query,
+   })
+   #+end_src
+
+** TOOL save_finding :tool:
+   :PROPERTIES:
+   :DESCRIPTION: Save a finding to the workbook.
+   :END:
+   #+begin_src lua
+   return db.write("findings", args)
+   #+end_src
+
+* TODO Evaluate findings :stage:critic:
+  :PROPERTIES:
+  :ID: stage-evaluate
+  :DEPENDS_ON: [[id:stage-find]]
+  :SYSTEM: You are a critic. Grade each finding for relevance and rigor.
+  :INPUT: findings
+  :OUTPUT: evaluations
+  :END:
+
+** TOOL grade_finding :tool:
+   :PROPERTIES:
+   :DESCRIPTION: Assign a quality score 1-10 with rationale.
+   :END:
+   #+begin_src lua
+   return db.write("evaluations", args)
+   #+end_src
+
+* TODO Write summary :stage:summarizer:
+  :PROPERTIES:
+  :ID: stage-summarize
+  :DEPENDS_ON: [[id:stage-evaluate]]
+  :SYSTEM: You are a summarizer. Compose a final report from the evaluated findings.
+  :INPUT: findings,evaluations
+  :OUTPUT: report
+  :END:
+
+** TOOL save_report :tool:
+   :PROPERTIES:
+   :DESCRIPTION: Save the final summary report.
+   :END:
+   #+begin_src lua
+   return db.write("reports", args)
+   #+end_src

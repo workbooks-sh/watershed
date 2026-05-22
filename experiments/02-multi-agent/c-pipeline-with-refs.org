@@ -1,0 +1,48 @@
+# Approach C: Pipeline org file references separate agent org files.
+# Each agent is its own file. The pipeline composes them with explicit
+# input/output threading and DAG edges.
+
+#+TITLE: Research Pipeline
+#+TODO: TODO DOING | DONE ABANDONED FAILED
+
+* SYSTEM
+  Orchestrate three agents in sequence: researcher → critic → summarizer.
+
+* TODO Find papers :stage:
+  :PROPERTIES:
+  :ID: stage-find
+  :AGENT: agents/researcher.org
+  :INPUTS: topic
+  :OUTPUTS: findings
+  :END:
+
+* TODO Evaluate findings :stage:
+  :PROPERTIES:
+  :ID: stage-evaluate
+  :DEPENDS_ON: [[id:stage-find]]
+  :AGENT: agents/critic.org
+  :INPUTS_FROM: stage-find.findings
+  :OUTPUTS: evaluations
+  :END:
+
+* TODO Write summary :stage:
+  :PROPERTIES:
+  :ID: stage-summarize
+  :DEPENDS_ON: [[id:stage-evaluate]]
+  :AGENT: agents/summarizer.org
+  :INPUTS_FROM: stage-find.findings stage-evaluate.evaluations
+  :OUTPUTS: report
+  :END:
+
+# Each :AGENT: reference points to a standalone .org file
+# (e.g., agents/researcher.org) that defines:
+#   - SYSTEM prompt
+#   - Tools as sub-headlines with Lua source blocks
+#   - Own internal stages if any
+#
+# The WORG executor:
+#   1. Walks this pipeline's DAG (next unblocked stage)
+#   2. For each stage, loads the referenced agent file
+#   3. Threads inputs in from prior stages' outputs
+#   4. Runs the agent loop until completion
+#   5. Stores outputs, transitions to DONE, moves on

@@ -1,0 +1,51 @@
+#+TITLE: Academic Research
+#+SKILL: academic-research
+#+DESCRIPTION: Conventions for finding and citing academic papers
+
+* Searching arxiv
+  Use precise search terms. Arxiv search is not fuzzy.
+
+** Example: a good query
+   #+begin_src lua :results value
+   local results = http.get("https://export.arxiv.org/api/query", {
+     search_query = "retrieval AND augmented AND generation",
+     max_results = 3,
+   })
+   return results[1].title
+   #+end_src
+
+   Expected: a precise match like "Retrieval-Augmented Generation
+   for Knowledge-Intensive NLP Tasks"
+
+** Example: a bad query (and why)
+   #+begin_src lua :results value
+   local results = http.get("https://export.arxiv.org/api/query", {
+     search_query = "papers about RAG stuff",
+     max_results = 3,
+   })
+   return #results
+   #+end_src
+
+   Returns very few or zero results — arxiv doesn't match the casual
+   phrasing. Use precise terms instead.
+
+* Citation format
+  APA 7th edition.
+
+** Format validator
+   #+begin_src lua :results value
+   -- Returns true if the citation matches APA 7th format.
+   local function valid(citation)
+     return citation:match("^[A-Z]%w+, %u%.") ~= nil
+        and citation:match("%(%d%d%d%d%)") ~= nil
+   end
+
+   return valid("Vaswani, A. (2017). Attention is all you need.")
+   #+end_src
+
+   Use this validator before saving a citation to the workbook.
+
+* When to use
+  Trigger when the user asks about academic papers, peer review,
+  research methodology, or citation formats. Do NOT use for general
+  web research or news.
