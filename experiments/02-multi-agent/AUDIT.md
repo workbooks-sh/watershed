@@ -119,7 +119,7 @@ inherits no benefit from existing infrastructure.
   properties.
 - Inputs/outputs are named on each stage. Threading happens by name
   via `:INPUTS_FROM:` property pointing at upstream stage outputs.
-- The Whack stdlib needs an `agent.invoke(path, args)` function for
+- The Watershed stdlib needs an `agent.invoke(path, args)` function for
   Lua source blocks that want to programmatically run sub-agents
   outside the WORG pipeline pattern (e.g., a tool that internally
   delegates to another agent). But the *primary* orchestration model

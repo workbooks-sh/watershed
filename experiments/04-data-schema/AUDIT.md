@@ -52,7 +52,7 @@ Lua tables are the canonical syntax for structured data.**
 
 ### What about runtime integration?
 
-- **A:** Lua table parsed by the Whack CLI; generates Ash resource
+- **A:** Lua table parsed by the Watershed CLI; generates Ash resource
   modules + migrations.
 - **B:** Org-mode parsed by WORG; the schema tables generated from
   parsed headlines/properties. Adds an extra translation layer with

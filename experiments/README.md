@@ -1,4 +1,4 @@
-# Whack — Authoring Surface Experiments
+# Watershed — Authoring Surface Experiments
 
 These experiments explore where Org Mode, Lua, and Svelte should each
 live in the workbooks authoring stack. Each experiment expresses the

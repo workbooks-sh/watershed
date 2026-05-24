@@ -60,7 +60,7 @@ The earlier plan put agent authoring in Lua (`agent.define`,
 1. **Remove agent authoring from the Lua surface entirely.** No
    `agent.define`, no agent DSL in Lua. Agents are .org files.
 
-2. **The Whack stdlib stays.** It's still the vocabulary that Lua
+2. **The Watershed stdlib stays.** It's still the vocabulary that Lua
    source blocks (inside org files) call into. `db.*`, `broker.*`,
    `http.*`, `oban.*`, etc. all stand.
 
@@ -68,25 +68,25 @@ The earlier plan put agent authoring in Lua (`agent.define`,
    composition from inside source blocks. Other `agent.*` functions
    become unnecessary because the pipeline pattern handles orchestration.
 
-4. **The Whack agent runtime is WORG's executor.** No separate Lua
+4. **The Watershed agent runtime is WORG's executor.** No separate Lua
    agent loop. The WORG-Lua execution stub (`wb-4vhr.15`) becomes the
-   Whack agent runtime — same luerl host serves both.
+   Watershed agent runtime — same luerl host serves both.
 
-5. **Agent architecture moves to its own document:** `/skills/whack/agents.md`.
+5. **Agent architecture moves to its own document:** `/skills/watershed/agents.md`.
    PLAN.md references it. Keeping it separate from PLAN.md lets the
    agent architecture evolve independently of the stdlib/data-layer plan.
-   (Originally drafted as `packages/whack/AGENTS.md`; relocated per the
+   (Originally drafted as `docs/watershed/AGENTS.md`; relocated per the
    no-AGENTS.md operating rule — see CLAUDE.md.)
 
 6. **Skills can be markdown or org-mode.** Existing markdown skills
    stay as-is. New skills with executable examples can use .org. The
    skill loader handles both formats.
 
-## What this clarifies about Whack's scope
+## What this clarifies about Watershed's scope
 
-Whack is now sharply defined:
+Watershed is now sharply defined:
 
-**Whack IS:**
+**Watershed IS:**
 
 - The Lua stdlib spec (`db.*`, `broker.*`, `http.*`, `agent.invoke`, etc.)
 - The luerl runtime hosted in Phoenix
@@ -95,7 +95,7 @@ Whack is now sharply defined:
   bundle into the .html artifact)
 - The runtime SDK extensions on the client (`subscribe`, `call`)
 
-**Whack IS NOT:**
+**Watershed IS NOT:**
 
 - An agent framework (that's WORG)
 - A planning DAG (that's WORG)
@@ -103,7 +103,7 @@ Whack is now sharply defined:
 - A markup format (that's org-mode)
 
 This is a much smaller, sharper scope than the prior PLAN.md implied.
-That's good — it means Whack ships sooner and integrates cleanly with
+That's good — it means Watershed ships sooner and integrates cleanly with
 the existing WORG infrastructure rather than competing with it.
 
 ## Open questions surfaced by the experiments
@@ -128,11 +128,11 @@ the existing WORG infrastructure rather than competing with it.
 
 ## Next concrete actions
 
-1. **Write `/skills/whack/agents.md`** — the agent architecture as a
+1. **Write `/skills/watershed/agents.md`** — the agent architecture as a
    standalone document, building from the experiments. Done.
 2. **Strip agent content from `PLAN.md`** — replace Section 8 with a
-   one-paragraph pointer to `/skills/whack/agents.md`. Done.
+   one-paragraph pointer to `/skills/watershed/agents.md`. Done.
 3. **Update `DECISIONS.md`** — add the decision: "agents are org-mode,
    not Lua DSL" with rationale from these experiments.
-4. **Build the vertical slice** (PLAN.md Section 11) — same scope, but
+4. **Build the vertical slice** (PLAN.md Section 12) — same scope, but
    with the corrected agent model.

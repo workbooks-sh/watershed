@@ -72,7 +72,7 @@ fit the declarative shape, which is < 20% in practice).**
 - **A:** Runtime has to interpret a Lua table as an agent definition.
   Custom semantics — reactivity classification, transaction wrapping,
   agent loop — all live in the `agent.define` host. Familiar pattern
-  but a real Whack-specific runtime.
+  but a real Watershed-specific runtime.
 - **B:** Runtime has to interpret org-mode properties as executable
   semantics. Either a property-to-code transpiler (fragile) or a deep
   property registry (verbose). Either way, the org file no longer
@@ -103,7 +103,7 @@ inherits no benefit from WORG's DAG / state machine / drawers / tags.
 
 ## Implication
 
-The Whack stdlib supplies the *vocabulary* that Lua source blocks call
+The Watershed stdlib supplies the *vocabulary* that Lua source blocks call
 into (`http.*`, `db.*`, etc.). The agent shape, multi-stage flow,
-dependencies, and validation are pure org-mode — no Whack DSL needed
+dependencies, and validation are pure org-mode — no Watershed DSL needed
 for that layer.

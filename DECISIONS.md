@@ -1,4 +1,4 @@
-# Whack — Decisions & Context
+# Watershed — Decisions & Context
 
 > Companion to `PLAN.md`. This document captures the reasoning behind the architectural
 > decisions: what we chose, what we rejected, when to revisit. Read this when something
@@ -24,9 +24,9 @@ AI-skill distribution), then BYO is the *escape hatch*, not the default. Workboo
 should declare their data needs and have Studio provide the backend — reactive queries,
 multi-tenancy, persistence — without making the workbook stop being portable.
 
-**The architectural decision:** Build a Lua-based authoring layer (Whack) that sits between
+**The architectural decision:** Build a Lua-based authoring layer (Watershed) that sits between
 the workbook artifact and Studio's Phoenix/Postgres/Ash backend. Lua scripts express
-queries, mutations, actions, and agent definitions. The Whack runtime classifies and
+queries, mutations, actions, and agent definitions. The Watershed runtime classifies and
 executes them. Workbooks can graduate to customer infrastructure because the Lua scripts
 are portable across host implementations.
 
@@ -66,7 +66,7 @@ JS-via-QuickJS would have been the better second language.
 ### 2.2 Lua is the bridge language across runtimes.
 
 **Decision:** Lua is positioned as a portability contract, not just an authoring choice.
-Workbook Lua scripts must run identically against any host that implements the Whack
+Workbook Lua scripts must run identically against any host that implements the Watershed
 stdlib — Phoenix/luerl today, Rust/mlua hosts later, browser/Fengari hosts if we ever add
 client-side execution.
 
@@ -94,7 +94,7 @@ needs to be retracted or scoped down.
 
 ### 2.3 Luerl in BEAM is the primary execution model.
 
-**Decision:** All Whack server-side execution happens through luerl (pure-Erlang Lua
+**Decision:** All Watershed server-side execution happens through luerl (pure-Erlang Lua
 interpreter) hosted in Phoenix. Lua scripts execute as Erlang processes, sandboxed by
 construction, supervised by OTP.
 
@@ -103,7 +103,7 @@ construction, supervised by OTP.
   are explicitly added by the host. This matches the third-party-publishing roadmap.
 - BEAM supervision = crash isolation. One workbook's bad script can't crash Studio.
 - Performance overhead (10–100× slower than native Lua) is irrelevant for thin orchestration,
-  which is the only thing Whack scripts should do. If a script does heavy compute, that's a
+  which is the only thing Watershed scripts should do. If a script does heavy compute, that's a
   signal to add a new Elixir/Rust primitive, not to optimize the Lua.
 
 **Alternatives rejected:**
@@ -157,7 +157,7 @@ build mode 2 first (simpler than mode 3) as a per-workbook opt-in.
 
 ### 2.5 The stdlib API is the priority artifact.
 
-**Decision:** Before any code is written, the Whack stdlib spec is drafted as a complete
+**Decision:** Before any code is written, the Watershed stdlib spec is drafted as a complete
 document: every function's signature, semantics, error model, reactivity classification,
 transactional behavior, tenant model, failure modes, and cross-host portability constraints.
 
@@ -216,7 +216,7 @@ should become the default rather than the fallback.
 
 ### 2.7 Postgres + Ash + Phoenix.Sync (Electric) + Oban as the Studio implementation.
 
-**Decision:** Whack's reference implementation (Whack-on-Studio) uses:
+**Decision:** Watershed's reference implementation (Watershed-on-Studio) uses:
 - **Postgres** on Fly as the system of record. Single primary, Supavisor connection
   pooling, vertical scaling first, read replica second.
 - **Ash** + **AshPostgres** for resource definitions, multitenancy, policies, calculations.
@@ -267,7 +267,7 @@ queries are automatically scoped to the active tenant.
 - Hard tenant isolation (schema-per-tenant) is reserved for graduated enterprise customers
   who get their own Phoenix+Postgres deploy.
 
-**Critical implementation point:** The Whack runtime is the only thing that constructs
+**Critical implementation point:** The Watershed runtime is the only thing that constructs
 `ctx`. Lua scripts can read `ctx.tenant` but never set it. Host discipline, not Lua
 discipline.
 
@@ -276,7 +276,7 @@ discipline.
 ### 2.9 Agents are authored in org-mode, not in Lua. Lua is the source-block language.
 
 **Decision:** Agent definitions live in `.org` files. Tool implementations are Lua
-source blocks inside those org files. The Whack stdlib provides the vocabulary for
+source blocks inside those org files. The Watershed stdlib provides the vocabulary for
 those source blocks. There is no `agent.define` function in Lua — no agent DSL on the
 Lua side at all.
 
@@ -286,14 +286,14 @@ Lua side at all.
   scheduler. A Lua agent DSL would duplicate every one of these.
 - The WORG infrastructure (parser, query, mutation, Elixir NIF, executor stub) is
   already built. The outstanding piece (`wb-4vhr.15` — luerl execution) is the same
-  piece Whack needs anyway. The two roadmaps merge into one.
+  piece Watershed needs anyway. The two roadmaps merge into one.
 - Org-mode is plain-text reviewable, version-control friendly, and supports
   hierarchical composition that Lua tables don't naturally express.
 - The cost — agents that would have been 15-line Lua tables are 25-line org files —
   is small. The win — single mental model, single runtime, single infrastructure
   stack — is large.
 
-**Concrete evidence:** four experiments at `packages/whack/experiments/`:
+**Concrete evidence:** four experiments at `docs/watershed/experiments/`:
 
 - 01-simple-agent — org+lua source blocks beats pure-Lua DSL on every axis.
 - 02-multi-agent — org pipeline file referencing per-agent org files beats Lua
@@ -315,8 +315,8 @@ pure code or pure declarative data. Svelte for UI.**
 
 **Implications:**
 
-- `/skills/whack/agents.md` is the dedicated agent architecture doc. PLAN.md §8 points to it. (Previously this lived at `packages/whack/AGENTS.md`; relocated per the no-AGENTS.md operating rule.)
-- `wb-4vhr.15` becomes part of Whack v1, not a separate workstream.
+- `/skills/watershed/agents.md` is the dedicated agent architecture doc. PLAN.md §8 points to it. (Previously this lived at `docs/watershed/AGENTS.md`; relocated per the no-AGENTS.md operating rule.)
+- `wb-4vhr.15` becomes part of Watershed v1, not a separate workstream.
 - The stdlib's `agent.*` namespace shrinks to just `agent.invoke(path, args)` for
   sub-agent calls from inside source blocks. No `agent.define`, no agent loop API
   exposed to Lua.
@@ -331,14 +331,14 @@ second runtime path.
 
 ### 2.10 Cloud sandbox VMs are wrapped in Lua, not exposed as raw Rust/Python entry points.
 
-**Decision:** When Whack needs to execute work outside BEAM (heavy compute, untrusted code
+**Decision:** When Watershed needs to execute work outside BEAM (heavy compute, untrusted code
 beyond what luerl can sandbox, third-party language runtimes), it spins up a Fly.io
 ephemeral sandbox VM. The sandbox itself hosts a Lua interpreter (mlua + Rust). Lua inside
 the sandbox shells out to Rust/Python/C++/whatever.
 
 **Why:**
 - Preserves the bridge-language thesis — same Lua surface across BEAM, browser, sandbox VM.
-- Calling Whack code doesn't change based on where execution happens. Authors write
+- Calling Watershed code doesn't change based on where execution happens. Authors write
   `sandbox.run({...})`, the platform routes.
 - Extensibility property: a fork could swap the sandbox image to run Python or any other
   language. The wrapping Lua keeps the contract stable.
@@ -351,6 +351,222 @@ get re-litigated when the first heavy-compute workbook needs it.
 
 ---
 
+### 2.11 Platform features are first-class Watershed scope. The broker is the legacy implementation we're absorbing.
+
+**Decision:** Watershed owns the entire Workbooks backend — not just the Lua runtime
+and stdlib, but auth, identity, workbook lifecycle, agent registry, audit logs,
+multi-tenancy, blob storage, and integration actions. The current Workbooks Broker
+(`packages/broker/worker`, a Cloudflare Worker) is the *legacy implementation* of these
+features. Migrating it = absorbing those features into Watershed.
+
+Earlier framing in this document treated the broker as "a Watershed host" — implying
+two systems that integrate. That framing is rejected. There is one system (Watershed);
+the broker is a Cloudflare-shaped predecessor of pieces of it.
+
+**Why this framing matters:**
+- The broker doc (`docs/broker-fly-migration.md`) was written before Watershed was named.
+  Its true goal was Cloudflare independence, not just dispatch-engine swapping. That
+  goal belongs at the center of Watershed's scope, not as a side concern.
+- Calling the broker a "host" understates Watershed. Watershed isn't a runtime that
+  the broker uses — it's the whole platform.
+- After migration, "the broker" as a concept disappears. Watershed serves the routes
+  that were broker routes. Cloudflare-specific application code is gone.
+
+**Concretely, Watershed owns:**
+
+| Feature | Library / approach |
+|---|---|
+| Auth (magic-link + OIDC) | `ash_authentication` with magic-link + WorkOS OIDC strategies |
+| Identity (users, sessions, author keys) | Ash `Identity` domain |
+| Workbook lifecycle | Ash `Workbooks` domain + Phoenix controllers preserving URL contract |
+| Audit log | Ash `Workbooks.AuditEntry`, append-only, hash-chained |
+| Agent registry | Ash `Agents` domain |
+| Multi-tenancy (orgs, groups, members, roles) | Ash `Orgs` domain + Ash policies |
+| Blob storage | `ex_aws_s3` / `req_s3` against R2 (default, env-swappable) |
+| Tool dispatch | Watershed's Luerl runtime + the Watershed stdlib |
+| Integration actions | Same Ash `Orgs.Connection` schema, Elixir HTTP behind it |
+| Lua stdlib + runtime | Watershed core (already in scope) |
+| Reactive data layer | Postgres + Ash + Phoenix.Sync (Electric) (already in scope) |
+| Background jobs | Oban (already in scope) |
+
+**Cloudflare independence is the load-bearing portability claim.** Watershed must run
+on stock Phoenix + Postgres + Fly with no CF dependency. R2 is the default blob store
+because of its free-egress pricing, but any S3-compatible backend works via env config.
+DNS / CDN / WAF are optional convenience, replaceable with any provider or Caddy.
+
+**Operational path (operational detail in `docs/broker-fly-migration.md`):**
+- Phase 0 — Phoenix+Ash scaffolding on Fly, CLI feature flag.
+- Phase 1 — Identity surface lands first (smallest blast radius, easiest to shadow-write).
+- Phase 2 — Workbook + agent metadata routes.
+- Phase 3 — R2 client ported to Elixir, R2 stays as the default but credentials migrate.
+- Phase 4 — Tool dispatch via Luerl, replacing Workers-for-Platforms.
+- Phase 5 — Decommission the CF Worker. After this, Cloudflare-specific code is gone.
+
+**Alternatives rejected:**
+- *Keep the broker on Cloudflare permanently; Watershed only handles workbook server
+  scripts* — defeats the Cloudflare-independence claim, locks self-hosters into a
+  CF dependency.
+- *Treat the broker as a separate service that calls Watershed* — adds an integration
+  surface, two deploy artifacts, two databases (or shared Postgres but split code).
+  Pointless given the architectures align.
+- *Roll our own auth instead of `ash_authentication`* — reinvention without benefit;
+  see DECISIONS §2.12 (use existing libraries).
+
+**Cross-references:**
+- Operational transition plan: `docs/broker-fly-migration.md`.
+- Watershed scope (the platform-features list): PLAN.md §1.
+- Cloudflare-independence framing + library choices: PLAN.md §11.
+- Build sequence threading the transition into the main work: PLAN.md §13.
+- Runtime topology after the transition (one Phoenix app, not two): PLAN.md §6.
+
+**When to revisit:** If a platform feature emerges that genuinely can't be expressed
+in Watershed's Ash + Phoenix + Postgres model (e.g., requires Cloudflare Durable Objects
+semantics or something equally CF-specific), revisit the independence claim explicitly.
+Don't quietly accept new CF dependencies — they're either out of scope or the claim
+needs to be revised.
+
+---
+
+### 2.12 Use existing Hex/JS libraries. Don't reinvent.
+
+**Decision:** Watershed leans on the existing Elixir / Hex ecosystem (and the JS
+ecosystem on the client side) aggressively. Custom code is reserved for things
+genuinely specific to Workbooks: the Luerl ↔ Ash stdlib bindings, the per-workbook
+tool handler loader, the schema-to-Ash codegen, the WORG executor integration.
+Everything else is a thin layer over a well-maintained package.
+
+**Why:**
+- The Elixir / Phoenix / Ash ecosystem is mature for the concerns Watershed owns.
+  Authentication, OAuth, admin UIs, GraphQL/JSON API, background jobs, Telemetry —
+  all solved with battle-tested Hex packages.
+- Rolling our own auth is a notorious mistake. `ash_authentication` covers magic-link,
+  OIDC, OAuth2, passkeys, and integrates with Ash policies. Use it.
+- Time spent reinventing infrastructure is time not spent on the actually
+  differentiated parts of Watershed (the Lua stdlib, the runtime, the agent shape,
+  the WORG integration).
+
+**Library picks for the broker transition + Watershed core:**
+
+| Concern | Library |
+|---|---|
+| Auth (magic-link, OIDC, sessions, OAuth2) | `ash_authentication` + `ash_authentication_phoenix` |
+| Email transport | `swoosh` (magic-link delivery, transactional email) |
+| Resource modeling + policies + tenancy | `ash` + `ash_postgres` |
+| Admin UI (resources + actions) | `ash_admin` (replaces bespoke `/v1/admin/*`) |
+| Telemetry / runtime dashboard | `phoenix_live_dashboard` (built-in metrics, processes, ETS, request log) |
+| Oban job inspector | `oban_web` (browse jobs, retry, cancel from the dashboard) |
+| Public JSON API | `ash_json_api` (preserves broker URL contract via thin Phoenix wrappers if needed) |
+| Reactive shapes | `phoenix_sync` (Electric integration) |
+| Background jobs / cron | `oban` |
+| Lua runtime | `luerl` |
+| S3-compatible client | `ex_aws_s3` or `req_s3` |
+| HTTP client | `req` |
+| Telemetry / tracing | `:telemetry` + `OpenTelemetryPhoenix` |
+| WorkOS OIDC | `ash_authentication`'s OAuth2 strategy against WorkOS endpoints |
+| Magic-link tokens | `ash_authentication`'s built-in magic-link strategy |
+| Crypto / signing | `:public_key`, `:crypto` (OTP stdlib) |
+
+**The admin / observability console is the composition** of `ash_admin` (Ash resources +
+actions) + `phoenix_live_dashboard` (metrics, processes, ETS, requests) + `oban_web`
+(job queue). All three are mature, all three run as LiveView routes under `/admin/*`
+on the same Fly app, auth-gated to operators. No custom dashboard. The Convex-shaped
+UX (browse tables, view logs, inspect functions, run ad-hoc actions) falls out of
+this composition without custom work.
+
+**CLI access** comes from Mix tasks (`mix watershed.<command>`) for ad-hoc operations
+and `fly ssh console` + `bin/<app> remote` for production IEx. No bespoke CLI tool
+needed; existing Phoenix / Fly tooling already covers this.
+
+**JS-side (workbook artifact + CLI):**
+
+| Concern | Library |
+|---|---|
+| Reactive client subscriptions | `@electric-sql/client` (Phoenix.Sync wire format) |
+| HTTP client | `fetch` (browser-native) — no axios, no superagent |
+| Workspace tooling | `bun` (already in use) |
+
+**What is custom code (legitimately, because it's the differentiated value):**
+- Watershed stdlib (`db.*`, `broker.*`, etc.) — the Lua surface that maps to Ash + Phoenix + Oban.
+- The Lua-function classifier (reactive / mutation / effectful) — publish-time AST walk.
+- Schema-to-Ash codegen from `workbook.schema.lua`.
+- `_generated/api.ts` codegen for the workbook client.
+- Per-workbook tool handler loading + sandboxed dispatch.
+- WORG integration (`worg.*` namespace, source-block execution via the same Luerl host).
+
+**Alternatives rejected:**
+- *Roll our own auth instead of `ash_authentication`* — reinvention. The auth library
+  ecosystem in Elixir is well-developed; use it.
+- *Build a custom admin UI before trying `ash_admin`* — at minimum, the admin surface
+  should start with `ash_admin` and only get replaced if a real product reason emerges.
+- *Hand-roll JSON API routes instead of `ash_json_api`* — fine for one or two routes,
+  but the broker has dozens. Use the library.
+
+**When to revisit:** If a Hex package we depend on is unmaintained, has a hostile
+maintainer, or fails for a Workbooks-specific use case, revisit individually. Don't
+preemptively replace working dependencies. Don't add custom code "just in case"
+when a library would do.
+
+---
+
+### 2.13 Agent-first developer experience is a design priority, not a feature.
+
+**Decision:** Every Watershed surface — CLI, API, skills, error messages, response
+shapes — is designed for an AI coding agent to use without human intervention. The
+admin dashboard is a convenience for humans who occasionally check the system; the
+CLI and API are how Watershed is actually operated.
+
+This is a *priority*, not a feature. It shapes which acceptance criteria a step
+must meet, what error envelopes look like, and which surfaces are non-negotiable
+vs nice-to-have.
+
+**Concrete implications:**
+- Every operation an operator can do via the dashboard must also be available via
+  the CLI and the API, with the same identifiers and the same response shapes. No
+  feature is dashboard-only.
+- API responses are structured JSON with stable error codes (`TABLE_NOT_FOUND`,
+  `CLASSIFIER_REJECTED`, etc.) — never error-message-text branching. Agents must
+  be able to detect failure modes by code, not by string matching.
+- The CLI accepts `--json` on every command for machine-readable output. Text
+  output is for humans; JSON output is the agent contract.
+- Error envelopes include `hint` fields with agent-actionable next steps ("run X
+  to recover"). Errors that don't include a hint should be considered bugs.
+- Skills (`/skills/watershed/`) document patterns, not just APIs — the agent reads
+  a skill to know *when* to use a command, not just *what* commands exist.
+- Schemas, agents, and server functions are authored in files (`.lua`, `.org`,
+  `.svelte`) that fit the agent's existing Edit/Write/Bash tool model. Nothing
+  is "click here in the dashboard to create."
+
+**Why this matters:**
+- Workbooks ships with the assumption that AI agents author and operate
+  workbook-backed systems. If Watershed requires a human to maintain operations,
+  that assumption breaks at deploy time.
+- The agent-first surface incidentally makes the system better for humans too:
+  stable error codes are easier to grep, JSON output is easier to script, and
+  skill files double as runnable documentation.
+- It sets a clear acceptance bar for new features: if an agent can't do the new
+  thing via CLI or API, it isn't done.
+
+**Alternatives rejected:**
+- *Dashboard-first, CLI/API as secondary* — produces features that are clicked,
+  not scripted. Agents struggle to operate it.
+- *Agent SDK as a separate concern* — adds a build artifact and a teaching surface
+  agents have to learn. The CLI is bash-callable; that's already the SDK.
+- *Pretty error messages aimed at humans, no error codes* — produces brittle agent
+  code that branches on string matches. Stable codes are required.
+
+**Cross-references:**
+- Concrete CLI command list, API surface, skill files: PLAN.md §16 (Agent
+  developer experience).
+- Library picks that make this work: §2.12 above.
+- Operations surface placement in the runtime: PLAN.md §6.
+
+**When to revisit:** If real authoring usage shows agents working around the
+CLI or API (e.g., asking humans to do things via the dashboard), that's the
+signal that a CLI/API gap exists. Patch the gap; don't accept "agents can't do
+this part" as a stable state.
+
+---
+
 ## 3. Things I (the assistant) got wrong along the way
 
 These corrections are part of the record so the design isn't built on the bad version:
@@ -359,7 +575,7 @@ These corrections are part of the record so the design isn't built on the bad ve
 False. WORG has zero implemented Lua execution today. The executor stub at
 `packages/worg/elixir/worg/lib/worg/exec.ex:39` raises `"not yet implemented — wb-4vhr.15"`.
 The "30 tools" framing was a verbal hand-wave that turned out not to match the code.
-**Correction:** WORG-Lua execution is planned, not built. The Whack stdlib is net-new
+**Correction:** WORG-Lua execution is planned, not built. The Watershed stdlib is net-new
 engineering; we are not "reusing what's there."
 
 **3.2 "mlua via NIF is the perf escape valve."**
@@ -371,7 +587,7 @@ runtime in BEAM. Sandboxed by WASM design, near-native speed. Documented in 2.3.
 **3.3 "Just keep workbooks BYO-database; don't make Phoenix Postgres the runtime data layer."**
 Wrong premise — fights the product vision. Studio *is* the managed backend; BYO is the
 escape hatch.
-**Correction:** Whack treats Studio's Phoenix Postgres as the default data backend.
+**Correction:** Watershed treats Studio's Phoenix Postgres as the default data backend.
 Workbooks talk to it through the stdlib. BYO and graduation paths exist as alternative
 backends behind the same stdlib contract.
 
@@ -414,13 +630,13 @@ These are flagged so the build phase forces a decision rather than papering over
    Postgres transaction. Multi-mutation chains require explicit `db.transaction(function()
    ... end)` opt-in. Confirm during slice.
 
-6. **Conformance test format for the stdlib.** What does "this host conforms to Whack
+6. **Conformance test format for the stdlib.** What does "this host conforms to Watershed
    stdlib v0.3" mean operationally? A test suite of Lua scripts + expected outputs?
    Property-based? Open question; resolve when the second host (mlua) ships.
 
 7. **WORG integration surface.** WORG-Lua execution is planned but unimplemented. How
-   tightly does Whack's stdlib bind to WORG's APIs vs. treat WORG as one of many backends?
-   Likely answer: WORG functions live in a `worg.*` namespace in the stdlib; Whack hosts
+   tightly does Watershed's stdlib bind to WORG's APIs vs. treat WORG as one of many backends?
+   Likely answer: WORG functions live in a `worg.*` namespace in the stdlib; Watershed hosts
    that implement WORG support expose them, others raise a "not implemented" error.
 
 ---
@@ -435,7 +651,7 @@ These are flagged so the build phase forces a decision rather than papering over
 - Schema-per-tenant for non-graduated customers.
 - BYO-database escape hatch (deferred — `wb.db(slot)` stays as a v0 surface but isn't
   the focus).
-- A non-Lua second implementation host (e.g., Rust-host running Whack workbooks).
+- A non-Lua second implementation host (e.g., Rust-host running Watershed workbooks).
 - Custom Luau-style typed dialect.
 
 These are documented as future work, not vetoed. The point is to not get distracted
